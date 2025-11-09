@@ -54,9 +54,84 @@ void handlecolour() {
   }
 }
 
+String html = R"rawliteral(
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>ESP32 LED Controller</title>
+    <meta charset="UTF-8">
+    <style>
+      body { font-family: Arial; text-align: center; margin-top: 40px; }
+      input, select, button { margin: 10px; padding: 8px; font-size: 16px; }
+    </style>
+  </head>
+  <body>
+    <h2>ESP32 LED Control</h2>
+    <form action="/led" method="get">
+      <label for="color">Color:</label>
+      <select name="color" id="color">
+        <option value="red">Red</option>
+        <option value="yellow">Yellow</option>
+        <option value="green">Green</option>
+        <option value="blue">Blue</option>
+        <option value="white">White</option>
+        <option value="black">Off</option>
+      </select>
+      <br>
+      <label for="percentage">Percentage (0–100):</label>
+      <input type="number" id="percentage" name="percentage" min="0" max="100" value="50">
+      <br>
+      <button type="submit">Set LEDs</button>
+    </form>
+  </body>
+  </html>
+  )rawliteral";
+
+
 void handleIndex() {
-  addCORSHeaders(); // Add CORS headers to response
-  server.send(200, "text/plain", "Hello from ESP32 Web Server");
+  addCORSHeaders();
+  server.send(200, "text/html", html);
+}
+
+void handleLED() {
+  addCORSHeaders();
+
+  if (!server.hasArg("color") || !server.hasArg("percentage")) {
+    server.send(400, "text/plain", "Missing color or percentage argument");
+    return;
+  }
+
+  String color = server.arg("color");
+  int percentage = server.arg("percentage").toInt();
+  percentage = constrain(percentage, 0, 100);
+
+  Serial.printf("Received color: %s, percentage: %d\n", color.c_str(), percentage);
+
+  // Determine LED color
+  CRGB selectedColor;
+  if (color == "red") selectedColor = CRGB::Red;
+  else if (color == "yellow") selectedColor = CRGB::Yellow;
+  else if (color == "green") selectedColor = CRGB::Green;
+  else if (color == "blue") selectedColor = CRGB::Blue;
+  else if (color == "white") selectedColor = CRGB::White;
+  else if (color == "black") selectedColor = CRGB::Black;
+  else {
+    server.send(400, "text/plain", "Unknown color");
+    return;
+  }
+
+  // Compute number of LEDs to light based on percentage
+  int numToLight = map(percentage, 0, 100, 0, NUM_LEDS);
+  Serial.printf("Lighting %d out of %d LEDs\n", numToLight, NUM_LEDS);
+
+  // Light LEDs
+  for (int i = 0; i < NUM_LEDS; i++) {
+    if (i < numToLight) leds[i] = selectedColor;
+    else leds[i] = CRGB::Black;
+  }
+  FastLED.show();
+
+  server.send(200, "text/html", html);
 }
 
 void setup() {
@@ -73,13 +148,8 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   server.on("/", HTTP_GET, handleIndex);
-  
-  // Handle colour requests using GET request
-  // To use POST request, change HTTP_GET to HTTP_POST
-  server.on("/colour", HTTP_GET, handlecolour); // http://127.0.01:80/colour?colour=red
-
-  // Handle CORS preflight using OPTIONS request
-  server.on("/colour", HTTP_OPTIONS, handleOptions);
+  server.on("/led", HTTP_GET, handleLED);
+  server.on("/led", HTTP_OPTIONS, handleOptions);
 
   server.begin();
 }
