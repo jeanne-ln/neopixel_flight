@@ -3,12 +3,12 @@
 #include <FastLED.h>
 
 #define DATA_PIN 25
-#define NUM_LEDS 41
+#define NUM_LEDS 20
 
 CRGB leds[NUM_LEDS];
 
-const char* ssid = "Redmi Note 14 Pro";//RUC-IOT
-const char* password = "jeanne123";//GiHa9289La
+const char* ssid = "RUC-IOT";//RUC-IOT
+const char* password = "GiHa9289La";//GiHa9289La
 
 WebServer server(80);
 
@@ -25,35 +25,8 @@ void handleOptions() {
   server.send(204);  // No Content response
 }
 
-// Handle colour change requests
-void handlecolour() {
-  addCORSHeaders(); // Add CORS headers to response
 
-  if (server.hasArg("colour")) { // http://127.0.0.1:80/colour?colour=
-    String colour = server.arg("colour");
-    Serial.println("Received colour: " + colour);
-
-    if (colour == "red") {
-      fill_solid(leds, NUM_LEDS, CRGB::Red);
-    } else if (colour == "yellow") {
-      fill_solid(leds, NUM_LEDS, CRGB::Yellow);
-    } else if (colour == "green") {
-      fill_solid(leds, NUM_LEDS, CRGB::Green);
-    } else if (colour == "black") {
-      fill_solid(leds, NUM_LEDS, CRGB::Black);
-    } else {
-      Serial.println("Unknown colour received.");
-      server.send(400, "text/plain", "Unknown colour");
-      return;
-    }
-
-    FastLED.show();
-    server.send(200, "text/plain", "Colour set to " + colour);
-  } else {
-    server.send(400, "text/plain", "Missing colour argument");
-  }
-}
-
+//HTML page that is not used in the project but can be used for testing
 String html = R"rawliteral(
   <!DOCTYPE html>
   <html>
